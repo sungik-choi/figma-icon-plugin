@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "es6",
+    "outDir": "dist",
     "lib": ["es6"],
     "strict": true,
     "typeRoots": [

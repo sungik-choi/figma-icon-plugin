@@ -2,9 +2,10 @@
   "name": "bezier-for-figma",
   "id": "1111637057152169595",
   "api": "1.0.0",
-  "main": "code.js",
+  "main": "dist/index.js",
   "editorType": [
     "figma"
   ],
-  "ui": "ui.html"
+  "ui": "ui.html",
+  "enablePrivatePluginApi": true
 }

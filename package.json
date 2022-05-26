@@ -2,7 +2,7 @@
   "name": "bezier-for-figma",
   "version": "1.0.0",
   "description": "Figma Plugin for Bezier Design System",
-  "main": "code.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },
