@@ -13,7 +13,7 @@ document.getElementById('cancel').onclick = () => {
 }
 
 const octokit = new Octokit({
-  auth: '',
+  auth: ''
 })
 
 onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
@@ -33,29 +33,90 @@ onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
         .then(svg => ({ name, svg })))
     )
 
-    const tree = svgs.map(({ name, svg }) => ({
-      path: `test/${name}.svg`,
-      mode: '100644',
-      type: 'blob',
-      content: svg,
-    }))
+    // Get the sha of the current default branch
+    const { data: [ref] } = await octokit.request('GET /repos/{owner}/{repo}/git/matching-refs/{ref}', {
+      owner: 'sungik-choi',
+      repo: 'figma-icon-plugin',
+      ref: 'heads/main',
+    })
 
+    const headCommitSha = ref.object.sha
+
+    // Get the head commit of the current default branch
+    const { data: headCommit } = await octokit.request('GET /repos/{owner}/{repo}/git/commits/{commit_sha}', {
+      owner: 'sungik-choi',
+      repo: 'figma-icon-plugin',
+      commit_sha: headCommitSha,
+    })
+
+    // Get the tree of the head commit
+    const { data: headTree } = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{tree_sha}', {
+      owner: 'sungik-choi',
+      repo: 'figma-icon-plugin',
+      tree_sha: headCommit.tree.sha
+    })
+
+    // Create a new Key value pair of git tree
+    const svgTreeObj = svgs.reduce((acc, { name, svg }) => {
+      const path = `test/${name}.svg`
+      return { ...acc, [path]: { path, mode: '100644', type: 'blob', content: svg } }
+    }, {})
+
+    // Merge tree
+    const newTree = [
+      ...headTree.tree.map((blob) => {
+        const overridedBlob = svgTreeObj[blob.path]
+        if (overridedBlob) {
+          delete svgTreeObj[blob.path]
+          return { ...blob, ...overridedBlob }
+        }
+        return blob
+      }),
+      ...Object.values(svgTreeObj)
+    ]
+
+    console.log(newTree)
+
+    // Generate new tree with the new svg assets
     const { data: gitTree } = await octokit.request('POST /repos/{owner}/{repo}/git/trees', {
       owner: 'sungik-choi',
       repo: 'figma-icon-plugin',
-      tree,
+      tree: newTree,
     })
 
-    const commit = await octokit.request('POST /repos/{owner}/{repo}/git/commits', {
+    // Create a new commit object with the new tree
+    const { data: commit } = await octokit.request('POST /repos/{owner}/{repo}/git/commits', {
       owner: 'sungik-choi',
       repo: 'figma-icon-plugin',
       message: '📦 Extracted Icon from Figma',
       author: {
-        name: 'Octocat',
-        email: 'octocat@github.com',
+        name: 'sungik-choi',
+        email: 'sungik.dev@gmail.com',
         date: new Date().toISOString(),
       },
+      parents: [headCommitSha],
       tree: gitTree.sha,
+    })
+
+    const newBranchName = `update-icons-${new Date().valueOf()}`
+    const newRef = `refs/heads/${newBranchName}`
+
+    // Create a new branch with the same sha
+    await octokit.request('POST /repos/{owner}/{repo}/git/refs', {
+      owner: 'sungik-choi',
+      repo: 'figma-icon-plugin',
+      ref: newRef,
+      sha: commit.sha,
+    })
+
+    // Create Pull Request
+    await octokit.request('POST /repos/{owner}/{repo}/pulls', {
+      owner: 'sungik-choi',
+      repo: 'figma-icon-plugin',
+      title: '👋 Update Icon!',
+      body: 'Please pull these awesome changes in!',
+      head: newBranchName,
+      base: 'main',
     })
   }
 }

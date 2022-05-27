@@ -1,13 +1,4 @@
-/**
- * TODO
- * 1. Find all instance node of selection
- * 2. List all instance node
- * 3. Sort instance node by name
- * 4. Make svg file from instance node
- * 5. Post to Github
- */
-
-const TEST_TOKEN = 'figd_tSvRu6SuTYR3nyGx-yl79-Wg5HwuU4sa9nz6QkUF'
+const TEST_TOKEN = ''
 
 const isComponentNode = (node: SceneNode): node is ComponentNode => node.type === 'COMPONENT' || node.type === 'INSTANCE'
 
