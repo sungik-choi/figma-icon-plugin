@@ -13,16 +13,22 @@ document.getElementById('cancel').onclick = () => {
 
 onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
   if (type === 'fetchSvg') {
-    fetch(payload.url, {
+    const init = {
       headers: {
         'Content-Type': 'application/json',
         'X-Figma-Token': payload.token
       }
-    })
+    }
+
+    const svgs = await fetch(payload.url, init)
       .then(response => response.json())
-      .then(({ images }) => {
-        parent.postMessage({ pluginMessage: { type: 'fetchSvgSuccess', payload: images } }, '*')
-      })
+      .then(({ images }) => Promise.all(
+        payload.nodes.map(({ id, name }) => fetch(images[id])
+          .then(response => response.text())
+          .then(svg => ({ name, svg }))
+      )))
+
+    parent.postMessage({ pluginMessage: { type: 'fetchSvgSuccess', payload: svgs } }, '*')
   }
 }
 

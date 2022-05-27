@@ -28,9 +28,13 @@ const findAllComponentNode = (rootNode: SceneNode) => {
 
 const flatten = <T>(a: Array<T>, b: Array<T>) => [...a, ...b]
 
+const hash = (path: string) => path
+  .replace(/^.*\/img\//g, '')
+  .replace(/\//g, '_');
+
 function run() {
   console.info('Figma file key: ', figma.fileKey)
-
+  
   figma.showUI(__html__);
 
   figma.ui.onmessage = msg => {
@@ -38,7 +42,7 @@ function run() {
       const componentNodes = figma.currentPage.selection
         .map(findAllComponentNode)
         .reduce(flatten, [])
-      
+  
       const componentNodesIdsQuery = componentNodes
         .map(node => node.id)
         .join(',')
@@ -46,6 +50,7 @@ function run() {
       figma.ui.postMessage({
         type: 'fetchSvg',
         payload: {
+          nodes: componentNodes.map(({ id, name }) => ({ id, name })),
           url: `https://api.figma.com/v1/images/${figma.fileKey}?ids=${componentNodesIdsQuery}&format=svg`,
           token: TEST_TOKEN,
         }
