@@ -66,37 +66,64 @@ onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
       tree_sha: headCommit.tree.sha
     })
 
-    // Create a new Key value pair of git tree
-    const svgTreeObj = svgBlobs.reduce((acc, { name, sha }) => {
-      const path = `${name}.svg`
-      return { ...acc, [path]: { path, mode: '100644', type: 'blob', sha } }
-    }, {})
-
-    const EXISTED_SVG_DIR_NAME = 'test'
+    const SVG_DIR_NAME = 'test'
 
     // Find the root of the svg blobs tree sha
-    const { sha: svgBlobsTreeSha } = headTree.find(({ path }) => path === EXISTED_SVG_DIR_NAME)
+    const svgBlobsTreeBlob = headTree.find(({ path }) => path === SVG_DIR_NAME)
 
-    // Get the tree of the the svg blobs tree
-    const { data: { tree: svgBlobsTree } } = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{tree_sha}', {
-      owner: 'sungik-choi',
-      repo: 'figma-icon-plugin',
-      tree_sha: svgBlobsTreeSha,
-    })
+    const hasDirectory = !!svgBlobsTreeBlob
 
-    // Merge tree
-    const newTree = [
-      ...headTree.filter(({ path }) => path !== EXISTED_SVG_DIR_NAME),
-      ...svgBlobsTree.map((blob) => {
-        const overridedBlob = svgTreeObj[blob.path]
-        if (overridedBlob) {
-          delete svgTreeObj[blob.path]
-          return { ...blob, ...overridedBlob }
-        }
-        return blob
-      }),
-      ...Object.values(svgTreeObj)
-    ]
+    const newTree = await (async function() {
+      if (hasDirectory) {
+        // Get the tree of the the svg blobs tree
+        const { data: { tree: svgBlobsTree } } = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{tree_sha}', {
+          owner: 'sungik-choi',
+          repo: 'figma-icon-plugin',
+          tree_sha: svgBlobsTreeBlob.sha,
+        })
+
+        // Create a new Key value pair of git tree
+        const svgTreeObj = svgBlobs.reduce((acc, { name, sha }) => {
+          const path = `${name}.svg`
+          return { ...acc, [path]: { path, mode: '100644', type: 'blob', sha } }
+        }, {})
+
+        // Merge tree
+        return [
+          ...headTree.filter(({ path }) => path !== SVG_DIR_NAME),
+          ...svgBlobsTree.map((blob) => {
+            const overridedBlob = svgTreeObj[blob.path]
+            if (overridedBlob) {
+              delete svgTreeObj[blob.path]
+              return { ...blob, ...overridedBlob }
+            }
+            return blob
+          }),
+          ...Object.values(svgTreeObj)
+        ]
+      } else {
+        // Create a new Key value pair of git tree
+        const svgTreeObj = svgBlobs.reduce((acc, { name, sha }) => {
+          const path = `${SVG_DIR_NAME}/${name}.svg`
+          return { ...acc, [path]: { path, mode: '100644', type: 'blob', sha } }
+        }, {})
+
+        // Merge tree
+        return [
+          ...headTree.map((blob) => {
+            const overridedBlob = svgTreeObj[blob.path]
+            if (overridedBlob) {
+              delete svgTreeObj[blob.path]
+              return { ...blob, ...overridedBlob }
+            }
+            return blob
+          }),
+          ...Object.values(svgTreeObj)
+        ]
+      }
+    })()
+
+    console.log(newTree)
 
     // Generate new tree with the new svg assets
     const { data: gitTree } = await octokit.request('POST /repos/{owner}/{repo}/git/trees', {
@@ -136,8 +163,8 @@ onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
     await octokit.request('POST /repos/{owner}/{repo}/pulls', {
       owner: 'sungik-choi',
       repo: 'figma-icon-plugin',
-      title: '👋 Update Icon!',
-      body: 'Please pull these awesome changes in!',
+      title: '📦 피그마에서 아이콘이 왔다네',
+      body: '머지하시게',
       head: newBranchName,
       base: 'main',
     })
