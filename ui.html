@@ -1,7 +1,8 @@
 <h2>Bezier Figma Plugin</h2>
 <button id="extract">Extract Icon</button>
 <button id="cancel">Cancel</button>
-<script>
+<script type="module">
+import { Octokit, App } from "https://cdn.skypack.dev/octokit";
 
 document.getElementById('extract').onclick = () => {
   parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
@@ -13,22 +14,22 @@ document.getElementById('cancel').onclick = () => {
 
 onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
   if (type === 'fetchSvg') {
-    const init = {
+    const response = await fetch(payload.url, {
       headers: {
         'Content-Type': 'application/json',
         'X-Figma-Token': payload.token
       }
-    }
+    })
 
-    const svgs = await fetch(payload.url, init)
-      .then(response => response.json())
-      .then(({ images }) => Promise.all(
-        payload.nodes.map(({ id, name }) => fetch(images[id])
-          .then(response => response.text())
-          .then(svg => ({ name, svg }))
-      )))
+    const { images } = await response.json()
 
-    parent.postMessage({ pluginMessage: { type: 'fetchSvgSuccess', payload: svgs } }, '*')
+    const svgs = await Promise.all(
+      payload.nodes.map(({ id, name }) => fetch(images[id])
+        .then(response => response.text())
+        .then(svg => ({ name, svg })))
+    )
+
+    console.log(svgs)
   }
 }
 

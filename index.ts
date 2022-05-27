@@ -57,10 +57,6 @@ function run() {
       })
     }
 
-    if (msg.type === 'fetchSvgSuccess') {
-      console.log(msg.payload)
-    }
-
     if (msg.type === 'cancel') {
       figma.closePlugin();
     }
