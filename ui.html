@@ -11,4 +11,19 @@ document.getElementById('cancel').onclick = () => {
   parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
 }
 
+onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
+  if (type === 'fetchSvg') {
+    fetch(payload.url, {
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Figma-Token': payload.token
+      }
+    })
+      .then(response => response.json())
+      .then(({ images }) => {
+        parent.postMessage({ pluginMessage: { type: 'fetchSvgSuccess', payload: images } }, '*')
+      })
+  }
+}
+
 </script>

@@ -7,35 +7,53 @@
  * 5. Post to Github
  */
 
-const isComponentNode = (node: SceneNode) => node.type === 'COMPONENT' || node.type === 'INSTANCE'
+const TEST_TOKEN = 'figd_tSvRu6SuTYR3nyGx-yl79-Wg5HwuU4sa9nz6QkUF'
 
-const findAllInstanceNode = (rootNode: SceneNode) => {
-  const result: SceneNode[] = []
-  function findNode(node: SceneNode) {
+const isComponentNode = (node: SceneNode): node is ComponentNode => node.type === 'COMPONENT' || node.type === 'INSTANCE'
+
+const findAllComponentNode = (rootNode: SceneNode) => {
+  const result: ComponentNode[] = []
+  function findComponentNode(node: SceneNode) {
     if (isComponentNode(node)) {
       result.push(node)
       return
     }
     if ('children' in node) {
-      node.children.forEach(findNode)
+      node.children.forEach(findComponentNode)
     }
   }
-  findNode(rootNode)
+  findComponentNode(rootNode)
   return result
 }
 
 const flatten = <T>(a: Array<T>, b: Array<T>) => [...a, ...b]
 
 function run() {
+  console.info('Figma file key: ', figma.fileKey)
+
   figma.showUI(__html__);
 
-  console.log(figma.fileKey)
-
-  figma.ui.onmessage = async msg => {
+  figma.ui.onmessage = msg => {
     if (msg.type === 'extract') {
-      figma.currentPage.selection
-        .map(findAllInstanceNode)
+      const componentNodes = figma.currentPage.selection
+        .map(findAllComponentNode)
         .reduce(flatten, [])
+      
+      const componentNodesIdsQuery = componentNodes
+        .map(node => node.id)
+        .join(',')
+      
+      figma.ui.postMessage({
+        type: 'fetchSvg',
+        payload: {
+          url: `https://api.figma.com/v1/images/${figma.fileKey}?ids=${componentNodesIdsQuery}&format=svg`,
+          token: TEST_TOKEN,
+        }
+      })
+    }
+
+    if (msg.type === 'fetchSvgSuccess') {
+      console.log(msg.payload)
     }
 
     if (msg.type === 'cancel') {
