@@ -28,10 +28,6 @@ const findAllComponentNode = (rootNode: SceneNode) => {
 
 const flatten = <T>(a: Array<T>, b: Array<T>) => [...a, ...b]
 
-const hash = (path: string) => path
-  .replace(/^.*\/img\//g, '')
-  .replace(/\//g, '_');
-
 function run() {
   console.info('Figma file key: ', figma.fileKey)
   
@@ -50,8 +46,9 @@ function run() {
       figma.ui.postMessage({
         type: 'fetchSvg',
         payload: {
+          fileKey: figma.fileKey,
+          ids: componentNodesIdsQuery,
           nodes: componentNodes.map(({ id, name }) => ({ id, name })),
-          url: `https://api.figma.com/v1/images/${figma.fileKey}?ids=${componentNodesIdsQuery}&format=svg`,
           token: TEST_TOKEN,
         }
       })
