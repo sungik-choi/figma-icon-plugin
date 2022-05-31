@@ -10,6 +10,13 @@
   "license": "ISC",
   "devDependencies": {
     "@figma/plugin-typings": "*",
+    "@types/react": "^18.0.9",
+    "@types/react-dom": "^18.0.5",
     "typescript": "*"
+  },
+  "dependencies": {
+    "octokit": "^1.7.1",
+    "react": "^18.1.0",
+    "react-dom": "^18.1.0"
   }
 }

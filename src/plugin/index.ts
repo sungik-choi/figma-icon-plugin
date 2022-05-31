@@ -17,7 +17,7 @@ const findAllComponentNode = (rootNode: SceneNode) => {
   return result
 }
 
-const flatten = <T>(a: Array<T>, b: Array<T>) => [...a, ...b]
+const flatten = <T>(a: T[], b: T[]) => [...a, ...b]
 
 function run() {
   console.info('Figma file key: ', figma.fileKey)
@@ -31,9 +31,9 @@ function run() {
         .reduce(flatten, [])
   
       const componentNodesIdsQuery = componentNodes
-        .map(node => node.id)
+        .map(({ id }) => id)
         .join(',')
-      
+
       figma.ui.postMessage({
         type: 'fetchSvg',
         payload: {
@@ -50,5 +50,3 @@ function run() {
     }
   };
 }
-
-run()

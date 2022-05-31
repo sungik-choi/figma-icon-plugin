@@ -73,6 +73,8 @@ onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
 
     const hasDirectory = !!svgBlobsTreeBlob
 
+    console.log(hasDirectory)
+
     const newTree = await (async function() {
       if (hasDirectory) {
         // Get the tree of the the svg blobs tree
@@ -135,7 +137,7 @@ onmessage = async ({ data: { pluginMessage: { type, payload } }}) => {
     const now = new Date()
 
     // Create a new commit object with the new tree
-    const { data: commit } = await octokit.request('POST /repos/{owner}/{repo}/git/commits', {
+    const { data: commit } = await octokit.rest('POST /repos/{owner}/{repo}/git/commits', {
       owner: 'sungik-choi',
       repo: 'figma-icon-plugin',
       message: 'feat(icons): update icons',
