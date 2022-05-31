@@ -1,5 +1,3 @@
-const TEST_TOKEN = ''
-
 const isComponentNode = (node: SceneNode): node is ComponentNode => node.type === 'COMPONENT' || node.type === 'INSTANCE'
 
 const findAllComponentNode = (rootNode: SceneNode) => {
@@ -40,7 +38,6 @@ function run() {
           fileKey: figma.fileKey,
           ids: componentNodesIdsQuery,
           nodes: componentNodes.map(({ id, name }) => ({ id, name })),
-          token: TEST_TOKEN,
         }
       })
     }
@@ -50,3 +47,5 @@ function run() {
     }
   };
 }
+
+run()

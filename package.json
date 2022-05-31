@@ -2,9 +2,9 @@
   "name": "bezier-for-figma",
   "version": "1.0.0",
   "description": "Figma Plugin for Bezier Design System",
-  "main": "dist/index.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "webpack --mode=production",
+    "build:watch": "webpack --mode=development --watch"
   },
   "author": "Channel Corp.",
   "license": "ISC",
@@ -12,7 +12,16 @@
     "@figma/plugin-typings": "*",
     "@types/react": "^18.0.9",
     "@types/react-dom": "^18.0.5",
-    "typescript": "*"
+    "css-loader": "^6.7.1",
+    "html-webpack-inline-source-plugin": "^0.0.10",
+    "html-webpack-plugin": "^5.5.0",
+    "react-dev-utils": "^12.0.1",
+    "style-loader": "^3.3.1",
+    "ts-loader": "^9.3.0",
+    "typescript": "*",
+    "url-loader": "^4.1.1",
+    "webpack": "^5.72.1",
+    "webpack-cli": "^4.9.2"
   },
   "dependencies": {
     "octokit": "^1.7.1",

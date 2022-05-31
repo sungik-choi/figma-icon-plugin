@@ -2,7 +2,7 @@ import { useRef, useCallback } from "react"
 import { Octokit } from "octokit"
 import { RestEndpointMethodTypes } from "@octokit/plugin-rest-endpoint-methods"
 
-interface UseOctokitProps {
+interface UseGithubAPIProps {
   auth: string
   owner: string
   repo: string
@@ -15,24 +15,23 @@ type CreateGitCommitParameters = RestEndpointMethodTypes['git']['createCommit'][
 type CreateGitRefParameters = RestEndpointMethodTypes['git']['createRef']['parameters']
 type CreatePullRequestParameters = RestEndpointMethodTypes['pulls']['create']['parameters']
 
-function useOctokit({
+function useGithubAPI({
   auth,
   owner,
   repo,
-}: UseOctokitProps) {
+}: UseGithubAPIProps) {
   const octokit = useRef(new Octokit({ auth }))
 
-  const createGitBlob = useCallback(async (content: CreateBlobParmeters['content']) => {
-    const { data } = await octokit.current.rest.git.createBlob({
+  const getGitCommit = useCallback(async (sha: string) => {
+    const { data } = await octokit.current.rest.git.getCommit({
       owner,
       repo,
-      content,
-      encoding: 'utf-8',
+      commit_sha: sha
     })
     return data
   }, [])
 
-  const getGitLatestCommit = useCallback(async (branchName: string) => {
+  const getGitRef = useCallback(async (branchName: string) => {
     const { data } = await octokit.current.rest.git.getRef({
       owner,
       repo,
@@ -50,11 +49,13 @@ function useOctokit({
     return data.tree
   }, [])
 
-  const createGitTree = useCallback(async (tree: CreateGitTreeParmeters['tree']) => {
-    const { data } = await octokit.current.rest.git.createTree({
+  const createGitBlob = useCallback(async (content: CreateBlobParmeters['content']) => {
+    console.log(owner, repo)
+    const { data } = await octokit.current.rest.git.createBlob({
       owner,
       repo,
-      tree,
+      content,
+      encoding: 'utf-8',
     })
     return data
   }, [])
@@ -73,7 +74,7 @@ function useOctokit({
     return data
   }, [])
 
-  const createGitBranch = useCallback(async ({
+  const createGitRef = useCallback(async ({
     branchName,
     sha,
   }: { branchName: CreateGitRefParameters['ref'] } & Pick<CreateGitRefParameters, 'sha'>) => {
@@ -82,6 +83,15 @@ function useOctokit({
       repo,
       ref: `refs/heads/${branchName}`,
       sha,
+    })
+    return data
+  }, [])
+
+  const createGitTree = useCallback(async (tree: CreateGitTreeParmeters['tree']) => {
+    const { data } = await octokit.current.rest.git.createTree({
+      owner,
+      repo,
+      tree,
     })
     return data
   }, [])
@@ -101,14 +111,15 @@ function useOctokit({
   }, [])
 
   return {
-    createGitBlob,
-    getGitLatestCommit,
+    getGitCommit,
+    getGitRef,
     getGitTree,
-    createGitTree,
+    createGitBlob,
     createGitCommit,
-    createGitBranch,
+    createGitRef,
+    createGitTree,
     createPullRequest,
   }
 }
 
-export default useOctokit
+export default useGithubAPI
