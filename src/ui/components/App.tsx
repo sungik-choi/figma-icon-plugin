@@ -1,4 +1,16 @@
+/* External dependencies */
 import React, { useEffect, useCallback } from 'react';
+import {
+  BezierProvider,
+  LightFoundation,
+  Button,
+  ButtonColorVariant,
+  ButtonStyleVariant,
+  HStack,
+  StackItem,
+} from '@channel.io/bezier-react';
+
+/* Internal dependencies */
 import useFigmaAPI from '../hooks/useFigmaAPI';
 import useGithubAPI from '../hooks/useGithubAPI';
 
@@ -75,15 +87,26 @@ function App() {
   }, [])
 
   return (
-    <>
-      <h2>Bezier Figma Plugin</h2>
-      <button onClick={handleClickExtract}>
-        Extract Icon
-      </button>
-      <button onClick={handleClickCancel}>
-        Cancel
-      </button>
-    </>
+    <BezierProvider foundation={LightFoundation}>
+      <HStack spacing={6}>
+        <StackItem>
+          <Button
+            styleVariant={ButtonStyleVariant.Primary}
+            colorVariant={ButtonColorVariant.Blue}
+            text="아이콘 추출"
+            onClick={handleClickExtract}
+          />
+        </StackItem>
+        <StackItem>
+          <Button
+            styleVariant={ButtonStyleVariant.Secondary}
+            colorVariant={ButtonColorVariant.MonochromeDark}
+            text="종료"
+            onClick={handleClickCancel}
+          />
+        </StackItem>
+      </HStack>
+    </BezierProvider>
   )
 };
 
