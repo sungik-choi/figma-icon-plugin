@@ -78,7 +78,7 @@
   resolved "https://registry.yarnpkg.com/@babel/parser/-/parser-7.18.4.tgz#6774231779dd700e0af29f6ad8d479582d7ce5ef"
   integrity sha512-FDge0dFazETFcxGw/EXzOkN8uJp0PC7Qbm+Pe9T+av2zlBpOgunFHkQPPn+eRuClU73JF+98D531UgayY89tow==
 
-"@babel/runtime@^7.10.2", "@babel/runtime@^7.12.13":
+"@babel/runtime@^7.10.2", "@babel/runtime@^7.12.13", "@babel/runtime@^7.7.6":
   version "7.18.3"
   resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.18.3.tgz#c7b654b57f6f63cf7f8b418ac9ca04408c4579f4"
   integrity sha512-38Y8f7YUhce/K7RMwTp7m0uCumpv9hZkitCbBClqQIow1qSbCvGkcegKOXpEWCQLfWmevgRiWokZ1GkpfhbZug==
@@ -118,10 +118,10 @@
     "@babel/helper-validator-identifier" "^7.16.7"
     to-fast-properties "^2.0.0"
 
-"@channel.io/bezier-react@^1.0.0-next-v1.134":
-  version "1.0.0-next-v1.134"
-  resolved "https://registry.yarnpkg.com/@channel.io/bezier-react/-/bezier-react-1.0.0-next-v1.134.tgz#a94046217895510c7d1511f5c13a58a9bc6849e8"
-  integrity sha512-H+AIC9W/RgO01U/sJN7CdErUEDj9OX3lQKk0eZJ+wbaS0aK87xTY6gM4e89HtT8d2ijkVbXSXEYOGmVd3eaptg==
+"@channel.io/bezier-react@^1.0.0-next-v1.149":
+  version "1.0.0-next-v1.149"
+  resolved "https://registry.yarnpkg.com/@channel.io/bezier-react/-/bezier-react-1.0.0-next-v1.149.tgz#e4454d1b9eef384dab73f4287bed41545060c00f"
+  integrity sha512-Jzat614getYX3xfeS4a5vpi2Alzt9hVkGP1PKbngkTJK6uC7/reU+0xPr+gLN72V+iScQDhoMWg7KcLquEh+rw==
   dependencies:
     "@babel/runtime" "^7.12.13"
     lodash-es "^4.17.15"
@@ -1534,6 +1534,13 @@ he@^1.2.0:
   resolved "https://registry.yarnpkg.com/he/-/he-1.2.0.tgz#84ae65fa7eafb165fddb61566ae14baf05664f0f"
   integrity sha512-F/1DnUGPopORZi0ni+CvrCgHQ5FyEAHRLSApuYWMmrbSwoN2Mn/7k+Gl38gJnR7yyDZk6WLXwiGod1JOWNDKGw==
 
+history@^5.2.0:
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/history/-/history-5.3.0.tgz#1548abaa245ba47992f063a0783db91ef201c73b"
+  integrity sha512-ZqaKwjjrAYUYfLG+htGaIIZ4nioX2L70ZUMIFysS3xvBsSG4x/n1V6TXV3N8ZYNuFGlDirFg32T7B6WOUPDYcQ==
+  dependencies:
+    "@babel/runtime" "^7.7.6"
+
 hoist-non-react-statics@^3.0.0:
   version "3.3.2"
   resolved "https://registry.yarnpkg.com/hoist-non-react-statics/-/hoist-non-react-statics-3.3.2.tgz#ece0acaf71d62c2969c2ec59feff42a4b1a85b45"
@@ -2385,6 +2392,21 @@ react-resize-detector@^7.1.1:
   integrity sha512-rU54VTstNzFLZAmMNHqt8xINjDWP7SQR05A2HUW0OGvl4vcrXzgaxrrqAY5tZMfkLkoYm5u0i0qGqCjdc2jyAA==
   dependencies:
     lodash "^4.17.21"
+
+react-router-dom@^6.3.0:
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/react-router-dom/-/react-router-dom-6.3.0.tgz#a0216da813454e521905b5fa55e0e5176123f43d"
+  integrity sha512-uaJj7LKytRxZNQV8+RbzJWnJ8K2nPsOOEuX7aQstlMZKQT0164C+X2w6bnkqU3sjtLvpd5ojrezAyfZ1+0sStw==
+  dependencies:
+    history "^5.2.0"
+    react-router "6.3.0"
+
+react-router@6.3.0:
+  version "6.3.0"
+  resolved "https://registry.yarnpkg.com/react-router/-/react-router-6.3.0.tgz#3970cc64b4cb4eae0c1ea5203a80334fdd175557"
+  integrity sha512-7Wh1DzVQ+tlFjkeo+ujvjSqSJmkt1+8JO+T5xklPlgrh70y7ogx75ODRW0ThWhY7S+6yEDks8TYrtQe/aoboBQ==
+  dependencies:
+    history "^5.2.0"
 
 react-textarea-autosize@^8.3.4:
   version "8.3.4"

@@ -2,15 +2,11 @@ import { flatten, findAllComponentNode } from './utils'
 
 console.info('Figma file key: ', figma.fileKey)
 
-figma.showUI(__html__)
+figma.showUI(__html__, { width: 400, height: 300 })
 
 figma.ui.onmessage = msg => {
   if (msg.type === 'extract') {
     extractIcon()
-  }
-
-  if (msg.type === 'cancel') {
-    figma.closePlugin()
   }
 };
 

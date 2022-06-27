@@ -22,6 +22,8 @@ function useGithubAPI({
 }: UseGithubAPIProps) {
   const octokit = useRef(new Octokit({ auth }))
 
+  console.log(octokit)
+
   const getGitCommit = useCallback(async (sha: string) => {
     const { data } = await octokit.current.rest.git.getCommit({
       owner,
