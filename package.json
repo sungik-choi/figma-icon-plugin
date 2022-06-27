@@ -1,12 +1,12 @@
 {
-  "name": "bezier-for-figma",
+  "name": "figma-icon-plugin",
   "version": "1.0.0",
-  "description": "Figma Plugin for Bezier Design System",
+  "description": "Figma plugin to export svg assets",
   "scripts": {
     "build": "webpack --mode=production",
     "build:watch": "webpack --mode=development --watch"
   },
-  "author": "Channel Corp.",
+  "author": "Sungik Choi",
   "license": "ISC",
   "devDependencies": {
     "@figma/plugin-typings": "*",
