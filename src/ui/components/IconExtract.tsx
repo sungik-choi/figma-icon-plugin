@@ -23,30 +23,10 @@ import {
 } from '@channel.io/bezier-react';
 
 /* Internal dependencies */
-import config from '../../config'
 import useFigmaAPI from '../hooks/useFigmaAPI';
 import useGithubAPI from '../hooks/useGithubAPI';
-
-interface ExtractIconEvent {
-  type: 'extractIcon'
-  payload: {
-    fileKey: string
-    ids: string
-    nodes: ComponentNode[]
-  }
-}
-
-interface GetTokenEvent {
-  type: 'getToken'
-  payload: {
-    figmaToken?: string
-    githubToken?: string
-  }
-}
-
-interface PluginMessageEvent {
-  pluginMessage: ExtractIconEvent | GetTokenEvent
-}
+import config from '../../config'
+import type PluginMessageEvent from '../../types/Message'
 
 enum Step {
   Pending,

@@ -1,4 +1,5 @@
 import { flatten, findAllComponentNode } from './utils'
+import { ExtractIconEvent, GetTokenEvent } from '../types/Message'
 
 console.info('Figma file key: ', figma.fileKey)
 
@@ -11,10 +12,12 @@ figma.ui.onmessage = async (msg) => {
 
   if (msg.type === 'getToken') {
     const token = await figma.clientStorage.getAsync('token')
-    figma.ui.postMessage({
+    const pluginMessage: GetTokenEvent = {
       type: 'getToken',
       payload: token,
-    })
+    }
+
+    figma.ui.postMessage(pluginMessage)
   }
 
   if (msg.type === 'setToken') {
@@ -32,12 +35,14 @@ function extractIcon() {
     .map(({ id }) => id)
     .join(',')
 
-  figma.ui.postMessage({
+  const pluginMessage: ExtractIconEvent = {
     type: 'extractIcon',
     payload: {
-      fileKey: figma.fileKey,
+      fileKey: figma.fileKey as string,
       ids: componentNodesIdsQuery,
       nodes: componentNodes,
     }
-  })
+  }
+  
+  figma.ui.postMessage(pluginMessage)
 }
