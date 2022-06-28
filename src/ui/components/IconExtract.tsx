@@ -25,12 +25,12 @@ import {
 import useFigmaAPI from '../hooks/useFigmaAPI';
 import useGithubAPI from '../hooks/useGithubAPI';
 
-const EXTRACT_PATH = "test"
+const EXTRACT_PATH = "packages/foo/src/components/Icon/assets"
 const DEFAULT_BRANCH_NAME = 'main'
 
 enum Step {
   Pending,
-  Progress,
+  Processing,
   Resolved,
 }
 
@@ -52,7 +52,7 @@ function IconExtract() {
 
   const handleSubmit = useCallback<React.FormEventHandler<HTMLFormElement>>((event) => {
     event.preventDefault()
-    setStep(Step.Progress)
+    setStep(Step.Processing)
     parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
   }, [])
 
@@ -128,7 +128,7 @@ function IconExtract() {
             </HStack>
           )}
 
-          {step === Step.Progress && (
+          {step === Step.Processing && (
             <Progress
               figmaToken={figmaToken}
               githubToken={githubToken}
@@ -196,7 +196,9 @@ function Progress({
 
           setProgressText("피그마에서 svg를 가져오는 중...")
           const { images } = await figmaAPI.getSvg({ fileKey, ids })
-          console.log(images)
+          if (!images) {
+            throw new Error('선택된 아이콘이 없습니다. 아이콘이 포함된 프레임이 올바르게 선택되었는지 확인해주세요.')
+          }
           setProgressValue(prev => prev + 0.1)
 
           setProgressText("svg를 파일로 만드는 중...")
@@ -217,8 +219,9 @@ function Progress({
           const svgBlobsTree = headTree.find(({ path }) => path === extractPath)
 
           console.log(svgBlobs, defaultRef, headCommit, headTree, svgBlobsTree)
-        } catch(e) {
+        } catch(e: any) {
           console.log(e)
+          console.log(e?.type, e?.message)
           onError()
         }
       }
