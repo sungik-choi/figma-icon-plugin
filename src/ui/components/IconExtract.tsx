@@ -23,8 +23,9 @@ import {
 } from '@channel.io/bezier-react';
 
 /* Internal dependencies */
-import useFigmaAPI from '../hooks/useFigmaAPI';
-import useGithubAPI from '../hooks/useGithubAPI';
+import useFigmaAPI from '../hooks/useFigmaAPI'
+import useGithubAPI from '../hooks/useGithubAPI'
+import { createSvgGitBlob } from '../utils'
 import config from '../../config'
 import type PluginMessageEvent from '../../types/Message'
 
@@ -164,15 +165,6 @@ function IconExtract() {
     </form>
   )
 };
-
-function createSvgGitBlob(path: string, sha: string) {
-  return {
-    path,
-    mode: '100644',
-    type: 'blob',
-    sha,
-  } as const
-}
 
 interface ProgressProps {
   figmaToken: string
