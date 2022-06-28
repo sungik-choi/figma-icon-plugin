@@ -23,6 +23,7 @@ import {
 } from '@channel.io/bezier-react';
 
 /* Internal dependencies */
+import config from '../../config'
 import useFigmaAPI from '../hooks/useFigmaAPI';
 import useGithubAPI from '../hooks/useGithubAPI';
 
@@ -46,9 +47,6 @@ interface GetTokenEvent {
 interface PluginMessageEvent {
   pluginMessage: ExtractIconEvent | GetTokenEvent
 }
-
-const EXTRACT_PATH = "packages/foo/src/components/Icon/assets"
-const BASE_BRANCH_NAME = 'main'
 
 enum Step {
   Pending,
@@ -139,7 +137,7 @@ function IconExtract() {
             <StackItem>
               <FormControl readOnly>
                 <FormLabel>추출할 경로 (루트 기준)</FormLabel>
-                <TextField value={EXTRACT_PATH} />
+                <TextField value={config.repository.iconExtractPath} />
               </FormControl>
             </StackItem>
             <StackItem marginBefore={4}>
@@ -178,7 +176,6 @@ function IconExtract() {
             <Progress
               figmaToken={figmaToken}
               githubToken={githubToken}
-              extractPath={EXTRACT_PATH}
               onError={handleExtractError}
             />
           )}
@@ -187,13 +184,6 @@ function IconExtract() {
     </form>
   )
 };
-
-interface ProgressProps {
-  figmaToken: string
-  githubToken: string
-  extractPath: string
-  onError: (msg: string) => void
-}
 
 function createSvgGitBlob(path: string, sha: string) {
   return {
@@ -204,10 +194,15 @@ function createSvgGitBlob(path: string, sha: string) {
   } as const
 }
 
+interface ProgressProps {
+  figmaToken: string
+  githubToken: string
+  onError: (msg: string) => void
+}
+
 function Progress({
   figmaToken,
   githubToken,
-  extractPath,
   onError,
 }: ProgressProps) {
   const navigate = useNavigate()
@@ -219,8 +214,8 @@ function Progress({
 
   const githubAPI = useGithubAPI({
     auth: githubToken,
-    owner: 'sungik-choi',
-    repo: 'figma-icon-plugin',
+    owner: config.repository.owner,
+    repo: config.repository.name,
   })
 
   useEffect(function bindOnMessageHandler() {
@@ -257,11 +252,11 @@ function Progress({
           setProgressValue(prev => prev + 0.3)
 
           setProgressText("📦 svg 파일을 변환하는 중...")
-          const baseRef = await githubAPI.getGitRef(BASE_BRANCH_NAME)
+          const baseRef = await githubAPI.getGitRef(config.repository.baseBranchName)
           const headCommit = await githubAPI.getGitCommit(baseRef.sha)
           const headTree = await githubAPI.getGitTree(headCommit.sha)
 
-          const splittedPaths = extractPath.split('/')
+          const splittedPaths = config.repository.iconExtractPath.split('/')
 
           const parentTrees: Awaited<ReturnType<typeof githubAPI['getGitTree']>>[] = []
 
@@ -308,10 +303,9 @@ function Progress({
           const now = new Date()
 
           const newCommit = await githubAPI.createGitCommit({
-            message: 'feat(icons): update icons',
+            message: config.commit.message,
             author: {
-              name: 'sungik-choi',
-              email: 'sungik.dev@gmail.com',
+              ...config.commit.author,
               date: now.toISOString(),
             },
             parents: [headCommit.sha],
@@ -327,10 +321,9 @@ function Progress({
           setProgressValue(prev => prev + 0.2)
 
           const { html_url } = await githubAPI.createPullRequest({
-            title: '📦 피그마에서 아이콘이 왔다네',
-            body: '머지하시게',
+            ...config.pr,
             head: newBranchName,
-            base: BASE_BRANCH_NAME,
+            base: config.repository.baseBranchName,
           })
 
           parent.postMessage({
