@@ -18,7 +18,6 @@ import {
   StackItem,
   ProgressBar,
   Text,
-  Typography,
 } from '@channel.io/bezier-react';
 
 /* Internal dependencies */
@@ -26,7 +25,7 @@ import useFigmaAPI from '../hooks/useFigmaAPI';
 import useGithubAPI from '../hooks/useGithubAPI';
 
 const EXTRACT_PATH = "packages/foo/src/components/Icon/assets"
-const DEFAULT_BRANCH_NAME = 'main'
+const BASE_BRANCH_NAME = 'main'
 
 enum Step {
   Pending,
@@ -160,14 +159,14 @@ interface ProgressProps {
   onError: () => void
 }
 
-// function createSvgBlob(path: string) {
-//   return {
-//     path,
-//     mode: '100644',
-//     type: 'blob',
-//     sha,
-//   }
-// }
+function createSvgGitBlob(path: string, sha: string) {
+  return {
+    path,
+    mode: '100644',
+    type: 'blob',
+    sha,
+  } as const
+}
 
 function Progress({
   figmaToken,
@@ -196,9 +195,9 @@ function Progress({
 
           setProgressText("피그마에서 svg를 가져오는 중...")
           const { images } = await figmaAPI.getSvg({ fileKey, ids })
-          if (!images) {
-            throw new Error('선택된 아이콘이 없습니다. 아이콘이 포함된 프레임이 올바르게 선택되었는지 확인해주세요.')
-          }
+          // if (!images) {
+          //   throw new Error('선택된 아이콘이 없습니다. 아이콘이 포함된 프레임이 올바르게 선택되었는지 확인해주세요.')
+          // }
           setProgressValue(prev => prev + 0.1)
 
           setProgressText("svg를 파일로 만드는 중...")
@@ -212,13 +211,83 @@ function Progress({
           )
           setProgressValue(prev => prev + 0.1)
 
-          const defaultRef = await githubAPI.getGitRef(DEFAULT_BRANCH_NAME)
-          const headCommit = await githubAPI.getGitCommit(defaultRef.sha)
+          const baseRef = await githubAPI.getGitRef(BASE_BRANCH_NAME)
+          const headCommit = await githubAPI.getGitCommit(baseRef.sha)
           const headTree = await githubAPI.getGitTree(headCommit.sha)
 
-          const svgBlobsTree = headTree.find(({ path }) => path === extractPath)
+          const splittedPaths = extractPath.split('/')
 
-          console.log(svgBlobs, defaultRef, headCommit, headTree, svgBlobsTree)
+          let targetTreeSha: string = ""
+          const parentTrees: Awaited<ReturnType<typeof githubAPI['getGitTree']>>[] = []
+          const targetTrees: Awaited<ReturnType<typeof githubAPI['getGitTree']>> = []
+
+          const svgBlobsTree = await splittedPaths.reduce(async (parentTreePromise, splittedPath) => {
+            const parentTree = await parentTreePromise
+            const targetTree = parentTree.find(({ path }) => path === splittedPath)
+            if (!targetTree || !targetTree.sha) { 
+              throw new Error('해당 추출 경로가 없습니다. 올바른 경로를 입력했는지 확인해주세요.')
+            }
+            targetTreeSha = targetTree.sha
+            parentTrees.push(parentTree)
+            targetTrees.push(targetTree)
+            return githubAPI.getGitTree(targetTree.sha)
+          }, Promise.resolve(headTree))
+
+          const svgTreeObj = svgBlobs.reduce((acc, { name, sha }) => {
+            const path = `${EXTRACT_PATH}/${name}.svg`
+            return { ...acc, [path]: createSvgGitBlob(path, sha) }
+          }, {} as { [path: string]: ReturnType<typeof createSvgGitBlob> })
+
+          console.log(headTree, svgBlobsTree)
+
+          console.log(parentTrees, targetTrees)
+
+          const newTree = [
+            ...headTree,
+            ...svgBlobsTree.map((blob) => {
+              const overridedBlob = svgTreeObj[blob.path as string]
+              if (overridedBlob) {
+                delete svgTreeObj[blob.path as string]
+                return { ...blob, ...overridedBlob }
+              }
+              return blob
+            }),
+            ...Object.values(svgTreeObj)
+          ]
+
+          const newGitTree = await githubAPI.createGitTree({
+            baseTreeSha: headCommit.sha,
+            //@ts-ignore
+            tree: newTree,
+          })
+
+          const now = new Date()
+
+          const newCommit = await githubAPI.createGitCommit({
+            message: 'feat(icons): update icons',
+            author: {
+              name: 'sungik-choi',
+              email: 'sungik.dev@gmail.com',
+              date: now.toISOString(),
+            },
+            parents: [headCommit.sha],
+            tree: newGitTree.sha,
+          })
+
+          const newBranchName = `update-icons-${now.valueOf()}`
+
+          await githubAPI.createGitRef({
+            branchName: newBranchName,
+            sha: newCommit.sha,
+          })
+
+          await githubAPI.createPullRequest({
+            title: '📦 피그마에서 아이콘이 왔다네',
+            body: '머지하시게',
+            head: newBranchName,
+            base: BASE_BRANCH_NAME,
+          })
+          
         } catch(e: any) {
           console.log(e)
           console.log(e?.type, e?.message)

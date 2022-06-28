@@ -50,7 +50,6 @@ function useGithubAPI({
   }, [])
 
   const createGitBlob = useCallback(async (content: CreateBlobParmeters['content']) => {
-    console.log(owner, repo)
     const { data } = await octokit.current.rest.git.createBlob({
       owner,
       repo,
@@ -87,10 +86,14 @@ function useGithubAPI({
     return data
   }, [])
 
-  const createGitTree = useCallback(async (tree: CreateGitTreeParmeters['tree']) => {
+  const createGitTree = useCallback(async ({
+    baseTreeSha,
+    tree,
+  }: { baseTreeSha: CreateGitTreeParmeters['base_tree'] } & Pick<CreateGitTreeParmeters, 'tree'>) => {
     const { data } = await octokit.current.rest.git.createTree({
       owner,
       repo,
+      base_tree: baseTreeSha,
       tree,
     })
     return data
