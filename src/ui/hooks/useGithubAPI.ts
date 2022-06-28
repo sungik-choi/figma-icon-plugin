@@ -89,7 +89,7 @@ function useGithubAPI({
   const createGitTree = useCallback(async ({
     baseTreeSha,
     tree,
-  }: { baseTreeSha: CreateGitTreeParmeters['base_tree'] } & Pick<CreateGitTreeParmeters, 'tree'>) => {
+  }: { baseTreeSha?: CreateGitTreeParmeters['base_tree'] } & Pick<CreateGitTreeParmeters, 'tree'>) => {
     const { data } = await octokit.current.rest.git.createTree({
       owner,
       repo,

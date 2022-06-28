@@ -12,8 +12,9 @@ import {
 } from '@channel.io/bezier-react';
 
 /* Internal dependencies */
-import IconExtract from './components/IconExtract'
 import Home from './components/Home'
+import IconExtract from './components/IconExtract'
+import ExtractSuccess from './components/ExtractSuccess'
 
 const container = document.getElementById('root') as HTMLElement
 const root = createRoot(container)
@@ -24,6 +25,7 @@ root.render(
       <Routes>
         <Route index element={(<Home />)} />
         <Route path="extract" element={(<IconExtract />)} />
+        <Route path="extract_success" element={(<ExtractSuccess />)} />
       </Routes>
     </MemoryRouter>
   </BezierProvider>

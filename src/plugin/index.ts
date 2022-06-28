@@ -4,9 +4,21 @@ console.info('Figma file key: ', figma.fileKey)
 
 figma.showUI(__html__, { width: 400, height: 300 })
 
-figma.ui.onmessage = msg => {
+figma.ui.onmessage = async (msg) => {
   if (msg.type === 'extract') {
     extractIcon()
+  }
+
+  if (msg.type === 'getToken') {
+    const token = await figma.clientStorage.getAsync('token')
+    figma.ui.postMessage({
+      type: 'getToken',
+      payload: token,
+    })
+  }
+
+  if (msg.type === 'setToken') {
+    await figma.clientStorage.setAsync('token', msg.payload)
   }
 };
 
@@ -21,7 +33,7 @@ function extractIcon() {
     .join(',')
 
   figma.ui.postMessage({
-    type: 'fetchSvg',
+    type: 'extractIcon',
     payload: {
       fileKey: figma.fileKey,
       ids: componentNodesIdsQuery,

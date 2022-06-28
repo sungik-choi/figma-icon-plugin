@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom"
 import {
   FormControl,
   FormLabel,
+  FormHelperText,
+  FormErrorMessage,
   TextField,
   Button,
   ButtonColorVariant,
@@ -24,6 +26,27 @@ import {
 import useFigmaAPI from '../hooks/useFigmaAPI';
 import useGithubAPI from '../hooks/useGithubAPI';
 
+interface ExtractIconEvent {
+  type: 'extractIcon'
+  payload: {
+    fileKey: string
+    ids: string
+    nodes: ComponentNode[]
+  }
+}
+
+interface GetTokenEvent {
+  type: 'getToken'
+  payload: {
+    figmaToken?: string
+    githubToken?: string
+  }
+}
+
+interface PluginMessageEvent {
+  pluginMessage: ExtractIconEvent | GetTokenEvent
+}
+
 const EXTRACT_PATH = "packages/foo/src/components/Icon/assets"
 const BASE_BRANCH_NAME = 'main'
 
@@ -39,7 +62,24 @@ function IconExtract() {
   const [figmaToken, setFigmaToken] = useState("")
   const [githubToken, setGithubToken] = useState("")
 
+  const [errorMessage, setErrorMessage] = useState("")
+
   const [step, setStep] = useState(Step.Pending)
+
+  useEffect(function getTokenFromLocalStorage() {
+    parent.postMessage({ pluginMessage: { type: 'getToken' } }, '*')
+  }, [])
+
+  useEffect(function bindOnMessageHandler() {
+    window.onmessage = async (event: MessageEvent<PluginMessageEvent>) => {
+      const { type, payload } = event.data.pluginMessage
+
+      if (type === 'getToken') {
+        setFigmaToken(payload?.figmaToken ?? '')
+        setGithubToken(payload?.githubToken ?? '')
+      }
+    }
+  }, [])
 
   const handleChangeFigmaToken = useCallback<React.ChangeEventHandler<HTMLInputElement>>((event) => {
     setFigmaToken(event.currentTarget.value)
@@ -50,6 +90,7 @@ function IconExtract() {
   }, [])
 
   const handleSubmit = useCallback<React.FormEventHandler<HTMLFormElement>>((event) => {
+    setErrorMessage("")
     event.preventDefault()
     setStep(Step.Processing)
     parent.postMessage({ pluginMessage: { type: 'extract' } }, '*')
@@ -59,8 +100,9 @@ function IconExtract() {
     navigate("/")
   }, [])
 
-  const handleExtractError = useCallback(() => {
+  const handleExtractError = useCallback((msg: string) => {
     setStep(Step.Pending)
+    setErrorMessage(msg)
   }, [])
 
   return (
@@ -83,7 +125,7 @@ function IconExtract() {
             </StackItem>
             <StackItem>
               <FormControl required readOnly={step !== Step.Pending}>
-                <FormLabel help="디자인 시스템 담당 개발자에게 문의해주세요!">
+                <FormLabel help="깃헙 레포지토리 쓰기 권한이 있는 토큰을 사용해주세요.">
                   Github personal access token
                 </FormLabel>
                 <TextField
@@ -99,6 +141,11 @@ function IconExtract() {
                 <FormLabel>추출할 경로 (루트 기준)</FormLabel>
                 <TextField value={EXTRACT_PATH} />
               </FormControl>
+            </StackItem>
+            <StackItem marginBefore={4}>
+              {errorMessage
+                ? <FormErrorMessage>{ errorMessage }</FormErrorMessage>
+                : <FormHelperText>토큰은 추출 성공 시 로컬 스토리지에 저장됩니다.</FormHelperText>}
             </StackItem>
           </VStack>
         </StackItem>
@@ -141,22 +188,11 @@ function IconExtract() {
   )
 };
 
-interface PluginMessageEvent {
-  pluginMessage: {
-    type: 'fetchSvg',
-    payload: {
-      fileKey: string
-      ids: string
-      nodes: ComponentNode[]
-    }
-  }
-}
-
 interface ProgressProps {
   figmaToken: string
   githubToken: string
   extractPath: string
-  onError: () => void
+  onError: (msg: string) => void
 }
 
 function createSvgGitBlob(path: string, sha: string) {
@@ -174,6 +210,8 @@ function Progress({
   extractPath,
   onError,
 }: ProgressProps) {
+  const navigate = useNavigate()
+
   const [progressValue, setProgressValue] = useState(0)
   const [progressText, setProgressText] = useState("")
 
@@ -189,18 +227,18 @@ function Progress({
     window.onmessage = async (event: MessageEvent<PluginMessageEvent>) => {
       const { type, payload } = event.data.pluginMessage
 
-      if (type === 'fetchSvg') {
+      if (type === 'extractIcon') {
         try {
           const { fileKey, ids, nodes } = payload
 
-          setProgressText("피그마에서 svg를 가져오는 중...")
+          setProgressText("🚚 피그마에서 svg를 가져오는 중...")
           const { images } = await figmaAPI.getSvg({ fileKey, ids })
-          // if (!images) {
-          //   throw new Error('선택된 아이콘이 없습니다. 아이콘이 포함된 프레임이 올바르게 선택되었는지 확인해주세요.')
-          // }
-          setProgressValue(prev => prev + 0.1)
+          if (!images) {
+            throw new Error('선택된 아이콘이 없거나 잘못된 피그마 토큰입니다.')
+          }
+          setProgressValue(prev => prev + 0.2)
 
-          setProgressText("svg를 파일로 만드는 중...")
+          setProgressText("📦 svg를 파일로 만드는 중...")
           const svgBlobs = await Promise.all(
             nodes.map(({ id, name }) => fetch(images[id])
               .then(response => response.text())
@@ -209,58 +247,64 @@ function Progress({
                 .then(({ sha }) => ({ name, sha }))
               ))
           )
-          setProgressValue(prev => prev + 0.1)
 
+          const svgBlobsMap = svgBlobs.reduce((acc, { name, sha }) => {
+            const path = `${name}.svg`
+            return { ...acc, [path]: createSvgGitBlob(path, sha) }
+          }, {} as { [path: string]: ReturnType<typeof createSvgGitBlob> })
+
+          const newSvgBlobs = Object.values(svgBlobsMap)
+          setProgressValue(prev => prev + 0.3)
+
+          setProgressText("📦 svg 파일을 변환하는 중...")
           const baseRef = await githubAPI.getGitRef(BASE_BRANCH_NAME)
           const headCommit = await githubAPI.getGitCommit(baseRef.sha)
           const headTree = await githubAPI.getGitTree(headCommit.sha)
 
           const splittedPaths = extractPath.split('/')
 
-          let targetTreeSha: string = ""
           const parentTrees: Awaited<ReturnType<typeof githubAPI['getGitTree']>>[] = []
-          const targetTrees: Awaited<ReturnType<typeof githubAPI['getGitTree']>> = []
 
-          const svgBlobsTree = await splittedPaths.reduce(async (parentTreePromise, splittedPath) => {
+          const prevSvgBlobsTree = await splittedPaths.reduce(async (parentTreePromise, splittedPath) => {
             const parentTree = await parentTreePromise
             const targetTree = parentTree.find(({ path }) => path === splittedPath)
             if (!targetTree || !targetTree.sha) { 
-              throw new Error('해당 추출 경로가 없습니다. 올바른 경로를 입력했는지 확인해주세요.')
+              throw new Error(`${splittedPath} 경로가 없습니다. 올바른 경로를 입력했는지 확인해주세요.`)
             }
-            targetTreeSha = targetTree.sha
             parentTrees.push(parentTree)
-            targetTrees.push(targetTree)
             return githubAPI.getGitTree(targetTree.sha)
           }, Promise.resolve(headTree))
 
-          const svgTreeObj = svgBlobs.reduce((acc, { name, sha }) => {
-            const path = `${EXTRACT_PATH}/${name}.svg`
-            return { ...acc, [path]: createSvgGitBlob(path, sha) }
-          }, {} as { [path: string]: ReturnType<typeof createSvgGitBlob> })
-
-          console.log(headTree, svgBlobsTree)
-
-          console.log(parentTrees, targetTrees)
-
-          const newTree = [
-            ...headTree,
-            ...svgBlobsTree.map((blob) => {
-              const overridedBlob = svgTreeObj[blob.path as string]
+          const newSvgBlobsTree = [
+            ...prevSvgBlobsTree.map((blob) => {
+              const overridedBlob = svgBlobsMap[blob.path as string]
               if (overridedBlob) {
-                delete svgTreeObj[blob.path as string]
+                delete svgBlobsMap[blob.path as string]
                 return { ...blob, ...overridedBlob }
               }
-              return blob
-            }),
-            ...Object.values(svgTreeObj)
+            }).filter(Boolean),
+            ...newSvgBlobs
           ]
 
-          const newGitTree = await githubAPI.createGitTree({
-            baseTreeSha: headCommit.sha,
+          const newGitSvgTree = await githubAPI.createGitTree({
             //@ts-ignore
-            tree: newTree,
+            tree: newSvgBlobsTree,
           })
 
+          const newRootGitTree = await splittedPaths.reduceRight(async (prevTreePromise, cur, index) => {
+            const parentTree = parentTrees[index]
+            const targetTree = parentTree.find(({ path }) => path === cur)
+            const { sha } = await prevTreePromise
+            return githubAPI.createGitTree({
+              tree: [
+                // @ts-ignore
+                ...parentTree.filter(({ path }) => path !== cur), { ...targetTree, sha }
+              ],
+            })
+          }, Promise.resolve(newGitSvgTree))
+          setProgressValue(prev => prev + 0.3)
+
+          setProgressText("🚚 PR을 업로드하는 중...")
           const now = new Date()
 
           const newCommit = await githubAPI.createGitCommit({
@@ -271,7 +315,7 @@ function Progress({
               date: now.toISOString(),
             },
             parents: [headCommit.sha],
-            tree: newGitTree.sha,
+            tree: newRootGitTree.sha,
           })
 
           const newBranchName = `update-icons-${now.valueOf()}`
@@ -280,18 +324,25 @@ function Progress({
             branchName: newBranchName,
             sha: newCommit.sha,
           })
+          setProgressValue(prev => prev + 0.2)
 
-          await githubAPI.createPullRequest({
+          const { html_url } = await githubAPI.createPullRequest({
             title: '📦 피그마에서 아이콘이 왔다네',
             body: '머지하시게',
             head: newBranchName,
             base: BASE_BRANCH_NAME,
           })
-          
+
+          parent.postMessage({
+            pluginMessage: {
+              type: 'setToken',
+              payload: { figmaToken, githubToken }
+            }
+          }, '*')
+
+          navigate('../extract_success', { state: { url: html_url } })
         } catch(e: any) {
-          console.log(e)
-          console.log(e?.type, e?.message)
-          onError()
+          onError(e?.message)
         }
       }
     }
@@ -311,101 +362,5 @@ function Progress({
     </VStack>
   )
 };
-
-// const newTree = await (async function() {
-//   if (hasDirectory) {
-//     // Get the tree of the the svg blobs tree
-//     const { data: { tree: svgBlobsTree } } = await octokit.request('GET /repos/{owner}/{repo}/git/trees/{tree_sha}', {
-//       owner: 'sungik-choi',
-//       repo: 'figma-icon-plugin',
-//       tree_sha: svgBlobsTreeBlob.sha,
-//     })
-
-//     // Create a new Key value pair of git tree
-//     const svgTreeObj = svgBlobs.reduce((acc, { name, sha }) => {
-//       const path = `${name}.svg`
-//       return { ...acc, [path]: { path, mode: '100644', type: 'blob', sha } }
-//     }, {})
-
-//     // Merge tree
-//     return [
-//       ...headTree.filter(({ path }) => path !== SVG_DIR_NAME),
-//       ...svgBlobsTree.map((blob) => {
-//         const overridedBlob = svgTreeObj[blob.path]
-//         if (overridedBlob) {
-//           delete svgTreeObj[blob.path]
-//           return { ...blob, ...overridedBlob }
-//         }
-//         return blob
-//       }),
-//       ...Object.values(svgTreeObj)
-//     ]
-//   } else {
-//     // Create a new Key value pair of git tree
-//     const svgTreeObj = svgBlobs.reduce((acc, { name, sha }) => {
-//       const path = `${SVG_DIR_NAME}/${name}.svg`
-//       return { ...acc, [path]: { path, mode: '100644', type: 'blob', sha } }
-//     }, {})
-
-//     // Merge tree
-//     return [
-//       ...headTree.map((blob) => {
-//         const overridedBlob = svgTreeObj[blob.path]
-//         if (overridedBlob) {
-//           delete svgTreeObj[blob.path]
-//           return { ...blob, ...overridedBlob }
-//         }
-//         return blob
-//       }),
-//       ...Object.values(svgTreeObj)
-//     ]
-//   }
-// })()
-
-// console.log(newTree)
-
-// // Generate new tree with the new svg assets
-// const { data: gitTree } = await octokit.request('POST /repos/{owner}/{repo}/git/trees', {
-//   owner: 'sungik-choi',
-//   repo: 'figma-icon-plugin',
-//   tree: newTree,
-// })
-
-// const now = new Date()
-
-// // Create a new commit object with the new tree
-// const { data: commit } = await octokit.rest('POST /repos/{owner}/{repo}/git/commits', {
-//   owner: 'sungik-choi',
-//   repo: 'figma-icon-plugin',
-//   message: 'feat(icons): update icons',
-//   author: {
-//     name: 'sungik-choi',
-//     email: 'sungik.dev@gmail.com',
-//     date: now.toISOString(),
-//   },
-//   parents: [headCommitSha],
-//   tree: gitTree.sha,
-// })
-
-// const newBranchName = `update-icons-${now.valueOf()}`
-// const newRef = `refs/heads/${newBranchName}`
-
-// // Create a new branch with the same sha
-// const { data } = await octokit.request('POST /repos/{owner}/{repo}/git/refs', {
-//   owner: 'sungik-choi',
-//   repo: 'figma-icon-plugin',
-//   ref: newRef,
-//   sha: commit.sha,
-// })
-
-// // Create Pull Request
-// await octokit.request('POST /repos/{owner}/{repo}/pulls', {
-//   owner: 'sungik-choi',
-//   repo: 'figma-icon-plugin',
-//   title: '📦 피그마에서 아이콘이 왔다네',
-//   body: '머지하시게',
-//   head: newBranchName,
-//   base: 'main',
-// })
 
 export default IconExtract;
